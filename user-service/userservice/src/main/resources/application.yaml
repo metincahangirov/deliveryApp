@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/users_db
+    username: root
+    password: metin456
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  secret: mysecretkeymysecretkeymysecretkey

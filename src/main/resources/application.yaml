@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: notificationservice-ms
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/menuservice
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db-changelog.yaml
+
+  springdoc:
+    api-docs:
+      path: /v3/api-docs
+    swagger-ui:
+      path: /swagger-ui.html
+      url: /notificationservice-ms/v3/api-docs
+
+server:
+  port: 8088
+  servlet:
+    context-path: /notificationservice-ms
+
+app:
+  security:
+    internal-token: change-me

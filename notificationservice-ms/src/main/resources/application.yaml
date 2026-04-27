@@ -3,15 +3,16 @@ spring:
     name: notificationservice-ms
 
   datasource:
-    url: jdbc:mysql://localhost:3306/menuservice
+    # createDatabaseIfNotExist=true — MySQL-də sxem yoxdursa avtomatik yaradır (əl ilə CREATE DATABASE lazım deyil).
+    url: jdbc:mysql://localhost:3306/notificationservice?createDatabaseIfNotExist=true&characterEncoding=UTF-8
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
-      dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
     properties:
       hibernate:
@@ -21,12 +22,11 @@ spring:
     enabled: false
     change-log: classpath:db/changelog/db-changelog.yaml
 
-  springdoc:
-    api-docs:
-      path: /v3/api-docs
-    swagger-ui:
-      path: /swagger-ui.html
-      url: /notificationservice-ms/v3/api-docs
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 server:
   port: 8088
@@ -34,5 +34,9 @@ server:
     context-path: /notificationservice-ms
 
 app:
+  jwt:
+    secret: "notificationservice-dev-secret-key-min-32-chars!!"
+    expiration-ms: 86400000
+
   security:
-    internal-token: change-me
+    internal-token: ${APP_INTERNAL_TOKEN:}

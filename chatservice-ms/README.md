@@ -50,14 +50,14 @@ Order üzrə yeni mesaj göndərir.
 
 ```json
 {
-  "orderId": "ORD-1001",
+  "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "content": "Salam, sifariş yoldadır?"
 }
 ```
 
 #### Validation
 
-- `orderId` boş ola bilməz
+- `orderId` boş ola bilməz və **RFC 4122 UUID** formatında olmalıdır
 - `content` boş ola bilməz
 - `content` max uzunluq (məs: 2000 simvol) limitini keçməməlidir
 
@@ -73,10 +73,10 @@ Order üzrə yeni mesaj göndərir.
 
 ```json
 {
-  "id": "MSG-90001",
-  "orderId": "ORD-1001",
-  "senderId": "USR-10",
-  "receiverId": "CR-44",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "senderId": "550e8400-e29b-41d4-a716-446655440001",
+  "receiverId": "550e8400-e29b-41d4-a716-446655440002",
   "content": "Salam, sifariş yoldadır?",
   "createdAt": "2026-04-08T10:15:30Z"
 }
@@ -97,7 +97,7 @@ Order üzrə bütün mesaj tarixçəsini qaytarır.
 
 #### Path Param
 
-- `orderId` (string)
+- `orderId` — **UUID** string (məs: `f47ac10b-58cc-4372-a567-0e02b2c3d479`)
 
 #### Business Rules
 
@@ -109,21 +109,21 @@ Order üzrə bütün mesaj tarixçəsini qaytarır.
 
 ```json
 {
-  "orderId": "ORD-1001",
+  "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "messages": [
     {
-      "id": "MSG-90001",
-      "orderId": "ORD-1001",
-      "senderId": "USR-10",
-      "receiverId": "CR-44",
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "senderId": "550e8400-e29b-41d4-a716-446655440001",
+      "receiverId": "550e8400-e29b-41d4-a716-446655440002",
       "content": "Salam, sifariş yoldadır?",
       "createdAt": "2026-04-08T10:15:30Z"
     },
     {
-      "id": "MSG-90002",
-      "orderId": "ORD-1001",
-      "senderId": "CR-44",
-      "receiverId": "USR-10",
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "senderId": "550e8400-e29b-41d4-a716-446655440002",
+      "receiverId": "550e8400-e29b-41d4-a716-446655440001",
       "content": "Bəli, 10 dəqiqəyə çatdırıram.",
       "createdAt": "2026-04-08T10:16:05Z"
     }
@@ -151,10 +151,10 @@ Real-time mesajlaşma üçün STOMP-over-WebSocket istifadə etmək tövsiyə ol
 {
   "eventType": "chat.message.created",
   "data": {
-    "id": "MSG-90001",
-    "orderId": "ORD-1001",
-    "senderId": "USR-10",
-    "receiverId": "CR-44",
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "orderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "senderId": "550e8400-e29b-41d4-a716-446655440001",
+    "receiverId": "550e8400-e29b-41d4-a716-446655440002",
     "content": "Salam, sifariş yoldadır?",
     "createdAt": "2026-04-08T10:15:30Z"
   }
@@ -163,21 +163,41 @@ Real-time mesajlaşma üçün STOMP-over-WebSocket istifadə etmək tövsiyə ol
 
 ## 6) Security & Authorization
 
-- Auth mexanizmi: JWT Bearer Token
-- Token claim-ləri minimum:
-  - `sub`: istifadəçi ID
-  - `role`: `USER` və ya `COURIER`
+- Auth mexanizmi: JWT Bearer Token (`Authorization: Bearer <token>`)
+- İmza: **HS256** (header-da `alg` yalnız `HS256` qəbul edilir; başqa alqoritmlər rədd edilir)
+- Konfiqurasiya: `app.security.jwt-secret` və ya `app.security.internal-token` — ən azı biri güclü bir açar ilə doldurulmalıdır (məs: mühitdə `JWT_SECRET`)
+
+### JWT claim-ləri (minimum)
+
+| Claim | Tələb | İzah |
+|--------|--------|------|
+| `sub` | bəli | İstifadəçi identifikatoru **RFC 4122 UUID** formatında olmalıdır (məs: `550e8400-e29b-41d4-a716-446655440000`). Servis token-i parse edəndə `sub`-u UUID kimi doğrulayır və kanonik stringə normalizə edir. |
+| `role` | bəli | `USER` və ya `COURIER` (JWT-də mətn; böyük/kiçik hərflərə dözümlü) |
+| `exp` | tövsiyə | Unix epoch (saniyə); keçmişdirsə token rədd edilir |
+
+### Nümunə payload (decode olunmuş)
+
+```json
+{
+  "sub": "550e8400-e29b-41d4-a716-446655440000",
+  "role": "USER",
+  "exp": 1735689600
+}
+```
+
 - Hər request üçün order ownership assignment yoxlanışı məcburidir
 - Audit üçün `senderId`, `orderId`, `ip`, `userAgent` loglanması tövsiyə olunur
+
+**Ümumi ID qaydası:** `orderId`, mesaj `id`, `senderId`, `receiverId`, JWT `sub`, Order Service-dən gələn `userId` / `courierId` hamısı **UUID** (RFC 4122 string) kimi qəbul və saxlanılır.
 
 ## 7) Data Model (Suggested)
 
 `chat_messages` cədvəli:
 
-- `id` (PK, UUID/String)
-- `order_id` (index)
-- `sender_id` (index)
-- `receiver_id` (index)
+- `id` (PK, UUID string — persist zamanı avtomatik generasiya)
+- `order_id` (UUID string, index)
+- `sender_id` (UUID string, index)
+- `receiver_id` (UUID string, index)
 - `content` (text/varchar)
 - `created_at` (timestamp, index)
 
@@ -197,7 +217,7 @@ Servislərarası inteqrasiya üçün vahid error formatı istifadə edin:
   "error": "Forbidden",
   "code": "CHAT_ACCESS_DENIED",
   "message": "You are not allowed to access this order chat.",
-  "path": "/api/chats/orders/ORD-1001"
+  "path": "/api/chats/orders/f47ac10b-58cc-4372-a567-0e02b2c3d479"
 }
 ```
 
@@ -226,11 +246,6 @@ Servis adı: `chatservice-ms`
 
 ## 11) Next Implementation Checklist
 
-- Message entity + migration əlavə et
-- Auth parsing/filter əlavə et
-- Order Service client inteqrasiyası yaz
-- POST `/api/chats/messages` endpoint implement et
-- GET `/api/chats/orders/{orderId}` endpoint implement et
-- WebSocket config + real-time publish implement et
-- Integration tests (auth + authorization + order checks) yaz
+- Integration tests (auth + authorization + order checks, WebSocket connect)
+- Rate limiting və observability genişləndirməsi
 

@@ -3,7 +3,7 @@ spring:
     name: chatservice-ms
 
   datasource:
-    url: jdbc:mysql://localhost:3306/menuservice
+    url: jdbc:mysql://localhost:3306/chatservice?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimezone=UTC
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -34,4 +34,10 @@ springdoc:
 
 app:
   security:
-    internal-token: change-me
+    # HS256 imza açarı: JWT_SECRET mühit dəyişəni və ya internal-token (JwtProperties.resolvedSecret)
+    jwt-secret: ${JWT_SECRET:}
+    internal-token: ${INTERNAL_TOKEN:change-me}
+
+chat:
+  order-service:
+    base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8080}

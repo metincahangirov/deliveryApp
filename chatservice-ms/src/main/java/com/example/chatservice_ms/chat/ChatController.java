@@ -5,7 +5,9 @@ import com.example.chatservice_ms.auth.JwtAuthService;
 import com.example.chatservice_ms.chat.dto.ChatMessageResponse;
 import com.example.chatservice_ms.chat.dto.OrderChatHistoryResponse;
 import com.example.chatservice_ms.chat.dto.SendMessageRequest;
+import com.example.chatservice_ms.common.UuidStrings;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @RestController
 @RequestMapping("/api/chats")
 public class ChatController {
@@ -41,7 +45,9 @@ public class ChatController {
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<OrderChatHistoryResponse> getOrderHistory(
             @RequestHeader(value = "Authorization", required = false) String authorization,
-            @PathVariable String orderId
+            @PathVariable
+            @Pattern(regexp = UuidStrings.UUID_REGEX, message = "orderId must be a valid UUID")
+            String orderId
     ) {
         AuthenticatedUser requester = jwtAuthService.authenticateBearerHeader(authorization);
         OrderChatHistoryResponse response = chatService.getOrderMessages(orderId, requester, authorization);

@@ -7,6 +7,7 @@ import com.example.chatservice_ms.chat.dto.ChatMessageResponse;
 import com.example.chatservice_ms.chat.dto.OrderChatHistoryResponse;
 import com.example.chatservice_ms.chat.dto.SendMessageRequest;
 import com.example.chatservice_ms.common.ApiException;
+import com.example.chatservice_ms.common.UuidStrings;
 import com.example.chatservice_ms.order.OrderChatContext;
 import com.example.chatservice_ms.order.OrderServiceClient;
 import org.springframework.http.HttpStatus;
@@ -31,12 +32,13 @@ public class ChatService {
     }
 
     public ChatMessageResponse sendMessage(AuthenticatedUser sender, SendMessageRequest request, String authHeader) {
-        OrderChatContext order = orderServiceClient.getOrderChatContext(request.orderId(), authHeader);
+        String orderId = UuidStrings.normalizeRequired(request.orderId(), "orderId");
+        OrderChatContext order = orderServiceClient.getOrderChatContext(orderId, authHeader);
         ensureAccess(sender, order);
 
         String receiverId = resolveReceiverId(sender, order);
         ChatMessage message = new ChatMessage();
-        message.setOrderId(request.orderId());
+        message.setOrderId(orderId);
         message.setSenderId(sender.userId());
         message.setReceiverId(receiverId);
         message.setContent(request.content().trim());
@@ -52,15 +54,16 @@ public class ChatService {
     }
 
     public OrderChatHistoryResponse getOrderMessages(String orderId, AuthenticatedUser requester, String authHeader) {
-        OrderChatContext order = orderServiceClient.getOrderChatContext(orderId, authHeader);
+        String canonicalOrderId = UuidStrings.normalizeRequired(orderId, "orderId");
+        OrderChatContext order = orderServiceClient.getOrderChatContext(canonicalOrderId, authHeader);
         ensureAccess(requester, order);
 
-        List<ChatMessageResponse> messages = repository.findByOrderIdOrderByCreatedAtAsc(orderId)
+        List<ChatMessageResponse> messages = repository.findByOrderIdOrderByCreatedAtAsc(canonicalOrderId)
                 .stream()
                 .map(ChatMessageResponse::from)
                 .toList();
 
-        return new OrderChatHistoryResponse(orderId, messages);
+        return new OrderChatHistoryResponse(canonicalOrderId, messages);
     }
 
     private void ensureAccess(AuthenticatedUser user, OrderChatContext order) {

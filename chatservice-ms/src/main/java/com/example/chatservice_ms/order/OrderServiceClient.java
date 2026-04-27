@@ -1,6 +1,7 @@
 package com.example.chatservice_ms.order;
 
 import com.example.chatservice_ms.common.ApiException;
+import com.example.chatservice_ms.common.UuidStrings;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -18,9 +19,14 @@ public class OrderServiceClient {
     }
 
     public OrderChatContext getOrderChatContext(String orderId, String authorizationHeader) {
+        String base = properties.baseUrl();
+        if (base == null || base.isBlank()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "ORDER_SERVICE_NOT_CONFIGURED",
+                    "Configure chat.order-service.base-url.");
+        }
         try {
             OrderChatContext response = restClient.get()
-                    .uri(properties.baseUrl() + "/internal/orders/{orderId}/chat-context", orderId)
+                    .uri(base + "/internal/orders/{orderId}/chat-context", orderId)
                     .header("Authorization", authorizationHeader)
                     .retrieve()
                     .body(OrderChatContext.class);
@@ -28,7 +34,7 @@ public class OrderServiceClient {
             if (response == null) {
                 throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found.");
             }
-            return response;
+            return UuidStrings.normalizeOrderChatContext(response);
         } catch (ApiException ex) {
             throw ex;
         } catch (RestClientException ex) {

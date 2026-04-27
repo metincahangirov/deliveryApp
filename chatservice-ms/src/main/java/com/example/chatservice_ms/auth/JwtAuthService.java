@@ -1,6 +1,7 @@
 package com.example.chatservice_ms.auth;
 
 import com.example.chatservice_ms.common.ApiException;
+import com.example.chatservice_ms.common.UuidStrings;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
@@ -39,22 +40,37 @@ public class JwtAuthService {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid token format.");
             }
 
+            verifyJwtHeaderRequiresHs256(parts[0]);
             verifyHs256Signature(parts[0], parts[1], parts[2]);
             JsonNode payload = decodePayload(parts[1]);
 
-            String userId = textValue(payload, "sub");
+            String userId = UuidStrings.requireUuidSubClaim(textValue(payload, "sub"));
             String roleValue = textValue(payload, "role");
-            if (userId == null || userId.isBlank() || roleValue == null || roleValue.isBlank()) {
+            if (roleValue == null || roleValue.isBlank()) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Token claims are missing.");
             }
 
             validateExpiration(payload);
-            UserRole role = UserRole.valueOf(roleValue.toUpperCase());
+            UserRole role;
+            try {
+                role = UserRole.valueOf(roleValue.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid role claim.");
+            }
             return new AuthenticatedUser(userId, role);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid token.");
+        }
+    }
+
+    private void verifyJwtHeaderRequiresHs256(String encodedHeader) throws Exception {
+        byte[] headerBytes = Base64.getUrlDecoder().decode(encodedHeader);
+        JsonNode header = OBJECT_MAPPER.readTree(headerBytes);
+        String alg = textValue(header, "alg");
+        if (!"HS256".equals(alg)) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "JWT must use HS256 algorithm.");
         }
     }
 
